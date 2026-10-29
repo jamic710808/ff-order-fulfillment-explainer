@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一張訂單看懂 FF</title>
+<style>
+/* Light-first, matching the product UI; dark mode keeps the same hierarchy. */
+:root{--bg:#f3f5f9;--card:#fff;--ink:#0f172a;--ink2:#334155;--muted:#64748b;--line:#dbe2ec;--blue:#1d5fd8;--blue-soft:#e6eefc;--amber:#d97706;--amber-soft:#fdf2e0;--red:#dc2626;--red-soft:#fde8e8;--green:#15803d;--green-soft:#e3f4e8;--teal:#0f766e;--teal-soft:#e0f2f0;--shadow:0 18px 48px -20px rgba(15,23,42,.25)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--card:#111a2c;--ink:#e8edf5;--ink2:#c3cddb;--muted:#8a97ab;--line:#24314a;--blue:#6ea0ff;--blue-soft:#17264a;--amber:#f0a43a;--amber-soft:#2e2414;--red:#f07070;--red-soft:#2e1717;--green:#4cc27a;--green-soft:#14291d;--teal:#3cc2b4;--teal-soft:#10282a;--shadow:0 18px 48px -20px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--bg:#0b1220;--card:#111a2c;--ink:#e8edf5;--ink2:#c3cddb;--muted:#8a97ab;--line:#24314a;--blue:#6ea0ff;--blue-soft:#17264a;--amber:#f0a43a;--amber-soft:#2e2414;--red:#f07070;--red-soft:#2e1717;--green:#4cc27a;--green-soft:#14291d;--teal:#3cc2b4;--teal-soft:#10282a;--shadow:0 18px 48px -20px rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Microsoft JhengHei UI","Microsoft JhengHei","Noto Sans TC","PingFang TC",sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:12px;height:60px}
+header.top img{width:34px;height:34px}
+header.top b{font-size:17px}
+header.top nav{margin-left:auto;display:flex;gap:6px;overflow-x:auto}
+header.top nav a{white-space:nowrap;color:var(--ink2);text-decoration:none;font-size:14px;padding:6px 10px;border-radius:999px}
+header.top nav a:hover{background:var(--blue-soft);color:var(--blue)}
+.hero{padding:48px 0 18px;text-align:center}
+.hero .tag{display:inline-block;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 12px}
+.hero h1{font-size:clamp(34px,6vw,64px);line-height:1.15;margin:14px 0 8px}
+.hero p{color:var(--ink2);font-size:clamp(17px,2.2vw,21px);margin:0}
+.big{font-size:clamp(26px,4vw,40px);font-weight:800;line-height:1.25;margin:0 0 6px}
+.lead{color:var(--ink2);font-size:18px;margin:0 0 16px}
+section{padding:40px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+/* Player */
+.player{padding:14px}
+.player video{width:100%;display:block;border-radius:14px;background:#000;aspect-ratio:16/9}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chips button{border:1px solid var(--line);background:var(--card);color:var(--ink2);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.chips button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chips button:focus-visible,.play:focus-visible,.btn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+/* Step blocks */
+.step{display:grid;grid-template-columns:1.35fr 1fr;gap:28px;align-items:center}
+.step.rev{grid-template-columns:1fr 1.35fr}
+.step.rev .pic{order:2}
+.pic{position:relative;cursor:zoom-in;border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:#fff}
+.pic img{display:block;width:100%;height:auto}
+.num{display:inline-flex;width:44px;height:44px;border-radius:50%;align-items:center;justify-content:center;background:var(--blue-soft);color:var(--blue);font-weight:800;font-size:20px;margin-bottom:10px}
+.emoji{font-size:44px;line-height:1}
+.play{display:inline-flex;align-items:center;gap:8px;margin-top:6px;border:0;background:var(--blue);color:#fff;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;cursor:pointer}
+.play.ghost{background:var(--blue-soft);color:var(--blue)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.note{font-size:13px;color:var(--muted)}
+.pill{display:inline-block;border-radius:999px;padding:3px 12px;font-size:14px;font-weight:700}
+.pill.a{background:var(--amber-soft);color:var(--amber)} .pill.r{background:var(--red-soft);color:var(--red)} .pill.g{background:var(--green-soft);color:var(--green)} .pill.b{background:var(--blue-soft);color:var(--blue)}
+/* Toys */
+.toy{padding:22px}
+.toy h3{margin:0 0 4px;font-size:22px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer}
+.btn.on{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.blocks{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
+.blk{aspect-ratio:1;border-radius:12px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:transform .45s cubic-bezier(.2,.8,.2,1),background .3s,color .3s,border-color .3s}
+.dots{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;max-width:520px}
+.dot{aspect-ratio:1;border-radius:50%;transition:background .35s,opacity .35s,transform .35s;background:#94a3b8}
+.answer{font-size:clamp(20px,3vw,28px);font-weight:800;margin:14px 0 0;min-height:1.4em}
+.tl{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+.mail{border:1px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;background:var(--card);transition:border-color .2s,transform .2s}
+.mail.on{border-color:var(--blue);transform:translateY(-3px)}
+.mail .d{font-size:13px;color:var(--muted)} .mail b{display:block;font-size:18px;margin-top:2px}
+.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.flow span{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:700}
+.flow i{color:var(--muted);font-style:normal}
+/* Quiz */
+.q{padding:20px;margin-bottom:14px}
+.q .opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.q .why{margin-top:10px;font-weight:700;min-height:1.3em}
+/* Lightbox */
+.lb{position:fixed;inset:0;background:rgba(2,6,23,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;cursor:zoom-out}
+.lb.on{display:flex}
+.lb img{max-width:100%;max-height:100%;border-radius:12px}
+footer{padding:36px 0 60px;text-align:center;color:var(--muted);font-size:14px}
+@media (max-width:760px){.step,.step.rev{grid-template-columns:1fr}.step.rev .pic{order:0}.row2,.tl{grid-template-columns:1fr}.blocks{grid-template-columns:repeat(5,1fr)}header.top nav{display:none}.blk{font-size:11px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><img src="img/logo.png" alt="FF - 製造業訂單履約 Logo"><b>FF - 製造業訂單履約</b>
+<nav><a href="#watch">看影片</a><a href="#why">問題</a><a href="#how">做法</a><a href="#cases">三個案例</a><a href="#follow">跟進</a><a href="#story">故事動畫</a><a href="#try">自己試</a><a href="#quiz">小測驗</a></nav></div></header>
+
+<main class="wrap">
+<div class="hero">
+  <span class="tag">課程教學樣本 · 資料已脫敏 · 2026 年 7 月</span>
+  <h1>一張訂單，<br>能準時交嗎？</h1>
+  <p>完全不懂也沒關係：先看圖，想看細節就按 ▶ 跳到影片那一段。</p>
+</div>
+
+<section id="watch">
+  <div class="card player">
+    <video id="v" controls preload="metadata" playsinline poster="img/f104.jpg">
+      <source src="film-web.mp4" type="video/mp4">
+      <track kind="subtitles" srclang="zh-Hant" label="繁體中文" src="film.vtt">
+    </video>
+    <div class="chips" id="chips"></div>
+  </div>
+  <p class="note" style="margin-top:8px">5 分 28 秒 · 旁白：Gemini TTS Kore · 下方每個 ▶ 只播那一小段</p>
+</section>
+
+<section id="why">
+  <div class="step">
+    <div class="pic"><img src="img/f20.jpg" alt="七個崗位環繞同一張訂單"></div>
+    <div><div class="emoji">🧩</div><p class="big">答案散在 7 個人手上</p><p class="lead">銷售、計劃、採購、倉儲、生產、質量、交付，各知道一塊。</p><button class="play" data-a="7.5" data-b="23.5">▶ 看這段</button></div>
+  </div>
+</section>
+
+<section>
+  <div class="step rev">
+    <div class="pic"><img src="img/f32.jpg" alt="計劃員在多個系統之間來回查找"></div>
+    <div><div class="emoji">🔁</div><p class="big">計劃員一直來回找</p><p class="lead">系統、表格、郵件……找完時，資料可能已經過時。</p><button class="play" data-a="23.6" data-b="34.5">▶ 看這段</button></div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="step">
+    <div class="pic"><img src="img/f48.jpg" alt="FF 的四個問題"></div>
+    <div><div class="emoji">🎯</div><p class="big">FF 只回答 4 件事</p><p class="lead">卡在哪？憑什麼？還差誰確認？誰跟進？<br><span class="pill b">它不替人做決定</span></p><button class="play" data-a="34.9" data-b="50.6">▶ 看這段</button></div>
+  </div>
+</section>
+
+<section>
+  <div class="row2">
+    <div><div class="pic"><img src="img/f60.jpg" alt="3,175 個檔案、11 種格式"></div><p class="big" style="margin-top:14px">3,175 份檔案</p><p class="lead">每份先算「指紋」，記住來源和版本。</p></div>
+    <div><div class="pic"><img src="img/f80.jpg" alt="業務本體圖"></div><p class="big" style="margin-top:14px">變成 79,810 個「東西」</p><p class="lead">訂單、物料、工單、批次彼此連起來。</p></div>
+  </div>
+  <button class="play ghost" data-a="51" data-b="85">▶ 看資料怎麼整理</button>
+</section>
+
+<section id="cases">
+  <p class="big">三個案例，一次看懂</p><p class="lead">自己按按看 👇</p>
+
+  <div class="card toy" style="margin-top:14px">
+    <h3>① 做完 6 臺，為什麼還欠 6 臺？</h3><span class="pill b">SO-260717-028 · 按「發運」算</span>
+    <div class="btns" id="b028"><button class="btn on" data-s="0">訂 10 臺</button><button class="btn" data-s="1">完工 6</button><button class="btn" data-s="2">發運 4</button><button class="btn" data-s="3">還欠多少？</button></div>
+    <div class="blocks" id="blk"></div>
+    <p class="answer" id="a028">客戶訂了 10 臺。</p>
+    <div class="row2" style="margin-top:16px"><div class="pic"><img src="img/f104.jpg" alt="十個機台方塊"></div><div class="pic"><img src="img/f114.5.jpg" alt="真實 028 訂單頁"></div></div>
+    <button class="play" data-a="85.4" data-b="116.5" style="margin-top:12px">▶ 看案例一</button>
+  </div>
+
+  <div class="card toy" style="margin-top:18px">
+    <h3>② 倉庫有 30 個，為什麼不夠 24 個？</h3><span class="pill b">SO-260717-021 · 光電傳感器 A01</span>
+    <div class="btns" id="b021"><button class="btn on" data-s="0">主倉 30</button><button class="btn" data-s="1">拿掉隔離 10</button><button class="btn" data-s="2">拿掉別單預留 12</button><button class="btn" data-s="3">和需求 24 比</button></div>
+    <div class="dots" id="dots"></div>
+    <p class="answer" id="a021">看起來有 30 個。</p>
+    <div class="row2" style="margin-top:16px"><div class="pic"><img src="img/f128.jpg" alt="30 個點被拆開"></div><div class="pic"><img src="img/f147.jpg" alt="可用 8、缺口 16 與替代料批准"></div></div>
+    <button class="play" data-a="116.9" data-b="150.6" style="margin-top:12px">▶ 看案例二</button>
+  </div>
+
+  <div class="card toy" style="margin-top:18px">
+    <h3>③ 收到回信，等於供應商答應提前嗎？</h3><span class="pill b">採購 PO-260715-014 · 正是 021 缺的料</span>
+    <div class="tl" id="mails">
+      <div class="mail" data-m="0" tabindex="0"><div class="d">7/15</div><b>20 個 · 7/24 到</b></div>
+      <div class="mail" data-m="1" tabindex="0"><div class="d">7/22 修訂</div><b>8 個 7/24 ＋ 12 個 7/29</b></div>
+      <div class="mail" data-m="2" tabindex="0"><div class="d">7/22 採購</div><b>「已收到」</b></div>
+    </div>
+    <p class="answer" id="a014">點一封信看看 👆</p>
+    <div class="pic" style="margin-top:16px"><img src="img/f176.jpg" alt="三封郵件時間線"></div>
+    <button class="play" data-a="151" data-b="184.5" style="margin-top:12px">▶ 看案例三</button>
+  </div>
+</section>
+
+<section id="follow">
+  <div class="step">
+    <div class="pic"><img src="img/f196.jpg" alt="三個帶條件的處理方向（示意）"></div>
+    <div><div class="emoji">🔒</div><p class="big">方案要有人批准</p><p class="lead">每個方向都有前提，不會自己變成排產或承諾。</p><span class="pill a">示意畫面</span><br><button class="play" data-a="184.9" data-b="199">▶ 看這段</button></div>
+  </div>
+</section>
+<section>
+  <div class="step rev">
+    <div class="pic"><img src="img/f212.jpg" alt="事項五階段：通知、接受、進展、回覆、關閉"></div>
+    <div><div class="emoji">📬</div><p class="big">通知 ≠ 接受</p><div class="flow" style="margin:6px 0 12px"><span>通知</span><i>›</i><span>接受</span><i>›</i><span>進展</span><i>›</i><span>回覆</span><i>›</i><span>關閉</span></div><span class="pill a">案例演練紀錄</span><br><button class="play" data-a="199" data-b="221">▶ 看這段</button></div>
+  </div>
+</section>
+<section>
+  <div class="row2">
+    <div><div class="pic"><img src="img/f238.5.jpg" alt="缺口 16 點回原始檔案"></div><p class="big" style="margin-top:14px">數字點得回原檔</p><p class="lead">「缺口 16」來自哪一行、哪一版。</p><button class="play ghost" data-a="232.3" data-b="240.3">▶ 看這段</button></div>
+    <div><div class="pic"><img src="img/f262.jpg" alt="程式計算與 AI 解釋的分工"></div><p class="big" style="margin-top:14px">程式算數，AI 只解釋</p><p class="lead">AI 只能用已連結的證據說明原因。</p><button class="play ghost" data-a="240.7" data-b="272.2">▶ 看這段</button></div>
+  </div>
+</section>
+<section>
+  <div class="step">
+    <div class="pic"><img src="img/f284.jpg" alt="四件不做的事"></div>
+    <div><div class="emoji">🚫</div><p class="big">它不會自己動手</p><p class="lead">不改 ERP、不替質量放行、不對客戶承諾。<br><b>決定，由有權限的人做。</b></p><button class="play" data-a="272.6" data-b="285.6">▶ 看這段</button></div>
+  </div>
+</section>
+
+<section id="story">
+  <div class="emoji">🎬</div>
+  <p class="big">用一個故事，再看一次</p>
+  <p class="lead">週一 8:59，業務問「028 能準時交嗎？」計劃員小禾要在 30 分鐘內給出一個<b>站得住</b>的答案。<br>上面三個案例，都在這個故事裡。</p>
+  <div class="card player">
+    <video id="v2" controls preload="metadata" playsinline poster="img/story-poster.jpg">
+      <source src="story-web.mp4" type="video/mp4">
+    </video>
+    <div class="chips" id="chips2"></div>
+  </div>
+  <p class="note" style="margin-top:8px">4 分 39 秒 · 手繪墨線動畫 · 旁白：Gemini TTS Kore · 字幕已燒在畫面上 · 人物與情節為示意，數字取自課程教學樣本</p>
+</section>
+
+<section id="try">
+  <div class="step rev">
+    <div class="pic"><img src="img/f316.jpg" alt="雙擊 start.bat 打開訂單頁"></div>
+    <div><div class="emoji">🖱️</div><p class="big">自己試，三步</p>
+      <div class="flow" style="margin:8px 0 12px"><span>① 雙擊 start.bat</span><i>›</i><span>② 打開 SO-260717-028</span><i>›</i><span>③ 用完雙擊 stop.bat</span></div>
+      <p class="note">位置：Part9 › 01-項目源碼 › OrderFulfillment</p><button class="play" data-a="301.2" data-b="318.9">▶ 看示範</button></div>
+  </div>
+</section>
+
+<section id="quiz">
+  <p class="big">小測驗 ✍️</p>
+  <div class="card q" data-ok="1"><b>028 做完 6 臺、發出 4 臺，按發運算還欠幾臺？</b><div class="opts"><button class="btn">4 臺</button><button class="btn">6 臺</button><button class="btn">2 臺</button></div><div class="why" data-y="✅ 對！10 − 發運 4 = 6（2 臺在成品區＋4 臺沒做完）" data-n="❌ 再想想：要看「發出去」幾臺，不是「做完」幾臺。"></div></div>
+  <div class="card q" data-ok="2"><b>021 主倉 30 個，真正能用幾個？</b><div class="opts"><button class="btn">30 個</button><button class="btn">20 個</button><button class="btn">8 個</button></div><div class="why" data-y="✅ 對！放行 20 − 別單預留 12 = 8" data-n="❌ 記得：10 個還在隔離，12 個被別張訂單預留。"></div></div>
+  <div class="card q" data-ok="0"><b>採購回信「已收到修訂」代表什麼？</b><div class="opts"><button class="btn">只是收到通知</button><button class="btn">供應商答應提前</button><button class="btn">貨已經到了</button></div><div class="why" data-y="✅ 對！收到 ≠ 提前承諾，預計到貨 ≠ 可以生產。" data-n="❌ 不對喔：信裡沒有新的提前承諾，採購單收貨數也是 0。"></div></div>
+</section>
+</main>
+
+<div class="lb" id="lb" role="dialog" aria-label="放大圖片"><img alt=""></div>
+<footer>@賦範空間 獨家研發 · 課程教學樣本 · 資料已脫敏<br>影片：FF - 製造業訂單履約_完整介紹片_20261028</footer>
+
+<script>
+const v = document.getElementById('v');
+// Chapters mirror timeline.json scene starts.
+const CH = [['開場',0],['問題',7.5],['產品',34.9],['資料',51],['案例一',85.4],['案例二',116.9],['案例三',151],['方向與協同',184.9],['變化複查',221.3],['證據',232.3],['架構',240.7],['邊界',272.6],['開發流程',286],['如何啟動',301.2],['結尾',319.2]];
+const chips = document.getElementById('chips');
+CH.forEach(([n, t]) => { const b = document.createElement('button'); b.textContent = n; b.onclick = () => { stopAt = null; v.currentTime = t; v.play(); }; chips.appendChild(b); });
+let stopAt = null;
+v.addEventListener('timeupdate', () => {
+  const t = v.currentTime; let k = 0; CH.forEach(([, s], i) => { if (t >= s - .05) k = i; });
+  [...chips.children].forEach((b, i) => b.classList.toggle('on', i === k));
+  if (stopAt != null && t >= stopAt) { v.pause(); stopAt = null; }
+});
+// Story animation: its own chapter chips (starts from story-animation-20261028/timeline.json).
+const v2 = document.getElementById('v2'), chips2 = document.getElementById('chips2');
+const CH2 = [['8:59 的電話',0],['七個部門',14.6],['FF 登場',45.9],['案例 028',72.3],['案例 021',110.9],['案例 014',150.1],['方向與接力',193.9],['數字有家',232.8],['9:30 的答覆',248.4]];
+CH2.forEach(([n, t]) => { const b = document.createElement('button'); b.textContent = n; b.onclick = () => { v2.currentTime = t; v2.play(); }; chips2.appendChild(b); });
+v2.addEventListener('timeupdate', () => { let k = 0; CH2.forEach(([, s], i) => { if (v2.currentTime >= s - .05) k = i; }); [...chips2.children].forEach((b, i) => b.classList.toggle('on', i === k)); });
+// Only one film plays at a time.
+v.addEventListener('play', () => v2.pause()); v2.addEventListener('play', () => v.pause());
+// "▶ 看這段": jump to the player, play only that segment.
+document.querySelectorAll('.play').forEach(b => b.onclick = () => {
+  document.getElementById('watch').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  v.currentTime = +b.dataset.a; stopAt = +b.dataset.b; v.play();
+});
+// Lightbox
+const lb = document.getElementById('lb');
+document.querySelectorAll('.pic img').forEach(i => i.onclick = () => { lb.querySelector('img').src = i.src; lb.querySelector('img').alt = i.alt; lb.classList.add('on'); });
+lb.onclick = () => lb.classList.remove('on');
+document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('on'); });
+// Toy ①: 10 blocks
+const blk = document.getElementById('blk');
+for (let i = 0; i < 10; i++) { const d = document.createElement('div'); d.className = 'blk'; blk.appendChild(d); }
+const A028 = ['客戶訂了 10 臺。', '工廠做完 6 臺……但還沒全部出貨。', '真正發出去的只有 4 臺。', '還欠 6 臺 = 成品區 2 ＋ 沒做完 4'];
+function s028(s) {
+  [...blk.children].forEach((d, i) => {
+    let bg = 'transparent', bc = 'var(--line)', c = 'var(--ink)', txt = '', y = 0;
+    if (s >= 1 && i < 6) { bg = 'var(--blue)'; bc = 'var(--blue)'; c = '#fff'; txt = '完工'; }
+    if (s >= 2 && i < 4) { bg = 'var(--green)'; bc = 'var(--green)'; txt = '已發運'; y = -10; }
+    if (s >= 3 && i >= 4 && i < 6) { bg = 'var(--teal-soft)'; bc = 'var(--teal)'; c = 'var(--teal)'; txt = '成品區'; }
+    if (s >= 3 && i >= 6) { bg = 'var(--amber-soft)'; bc = 'var(--amber)'; c = 'var(--amber)'; txt = '未完成'; }
+    Object.assign(d.style, { background: bg, borderColor: bc, color: c, transform: `translateY(${y}px)` }); d.textContent = txt;
+  });
+  document.getElementById('a028').textContent = A028[s];
+}
+// Toy ②: 30 dots → 8 usable vs need 24
+const dots = document.getElementById('dots');
+for (let i = 0; i < 30; i++) { const d = document.createElement('div'); d.className = 'dot'; dots.appendChild(d); }
+const A021 = ['看起來有 30 個。', '其中 10 個還在質量隔離（不能用）。', '放行的 20 個裡，12 個被別張訂單預留。', '只剩 8 個能用 → 還缺 16 個'];
+function s021(s) {
+  [...dots.children].forEach((d, i) => {
+    let bg = '#94a3b8', o = 1, sc = 1;
+    if (s >= 1 && i >= 20) { bg = 'var(--amber)'; o = s >= 2 ? .25 : 1; }
+    if (s >= 1 && i < 20) bg = 'var(--blue)';
+    if (s >= 2 && i < 12) { bg = '#cbd5e1'; o = .35; }
+    if (s >= 2 && i >= 12 && i < 20) { bg = 'var(--green)'; sc = 1.08; }
+    Object.assign(d.style, { background: bg, opacity: o, transform: `scale(${sc})`, outline: s >= 3 && i < 24 ? '2px dashed var(--red)' : 'none', outlineOffset: '2px' });
+  });
+  document.getElementById('a021').textContent = A021[s];
+}
+function stepper(id, fn) { const g = document.getElementById(id); g.querySelectorAll('.btn').forEach(b => b.onclick = () => { g.querySelectorAll('.btn').forEach(x => x.classList.toggle('on', x === b)); fn(+b.dataset.s); }); fn(0); }
+stepper('b028', s028); stepper('b021', s021);
+// Toy ③: three mails
+const A014 = ['第一封：20 個，預計 7/24 到。', '修訂：只有 8 個仍是 7/24，其餘 12 個延到 7/29。', '採購只是「收到修訂」——不是提前承諾，貨也還沒到。'];
+document.querySelectorAll('.mail').forEach(m => { const go = () => { document.querySelectorAll('.mail').forEach(x => x.classList.toggle('on', x === m)); document.getElementById('a014').textContent = A014[+m.dataset.m]; }; m.onclick = go; m.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
+// Quiz
+document.querySelectorAll('.q').forEach(q => { const ok = +q.dataset.ok, why = q.querySelector('.why'); q.querySelectorAll('.btn').forEach((b, i) => b.onclick = () => { q.querySelectorAll('.btn').forEach(x => x.classList.remove('on')); b.classList.add('on'); why.textContent = i === ok ? why.dataset.y : why.dataset.n; why.style.color = i === ok ? 'var(--green)' : 'var(--red)'; }); });
+</script>
+</body>
+</html>
